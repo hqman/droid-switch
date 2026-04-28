@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses semantic versioning.
 
+## [0.1.2] - 2026-04-28
+
+### Added
+
+- Added first-run guidance when running `dsw` with no command.
+- Improved empty profile list guidance based on whether a Droid login exists.
+
 ## [0.1.1] - 2026-04-28
 
 ### Changed

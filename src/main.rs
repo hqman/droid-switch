@@ -5,12 +5,18 @@ use clap::Parser;
 use dsw::cli::{Cli, Command};
 use dsw::commands;
 use dsw::paths::Paths;
+use dsw::paths::AUTH_FILES;
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let paths = Paths::from_env();
 
-    let res = match cli.command {
+    let Some(command) = cli.command else {
+        print_onboarding(&paths);
+        return ExitCode::SUCCESS;
+    };
+
+    let res = match command {
         Command::Init(a) => commands::init::run(&paths, a),
         Command::Add(a) => commands::add::run(&paths, a),
         Command::Import(a) => commands::import::run(&paths, a),
@@ -30,4 +36,33 @@ fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+fn print_onboarding(paths: &Paths) {
+    println!("Droid Switch (dsw)");
+    println!();
+    if has_live_login(paths) {
+        println!("A Droid login was found in {}.", paths.factory.display());
+        println!();
+        println!("Start by saving it as your main profile:");
+        println!("  dsw import main");
+    } else {
+        println!("No Droid login was found in {}.", paths.factory.display());
+        println!();
+        println!("Log in first, then save the account:");
+        println!("  droid");
+        println!("  dsw import main");
+        println!();
+        println!("Or let dsw launch Droid for a new profile:");
+        println!("  dsw add main");
+    }
+    println!();
+    println!("Useful commands:");
+    println!("  dsw list");
+    println!("  dsw use <name>");
+    println!("  dsw status");
+}
+
+fn has_live_login(paths: &Paths) -> bool {
+    AUTH_FILES.iter().any(|f| paths.factory.join(f).is_file())
 }

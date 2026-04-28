@@ -79,6 +79,54 @@ fn import_then_status_then_list() {
 }
 
 #[test]
+fn no_args_suggests_import_when_live_login_exists() {
+    let sb = Sandbox::new();
+    sb.write_live("alice@example.com");
+
+    sb.cmd()
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("dsw import main"));
+}
+
+#[test]
+fn no_args_suggests_login_when_no_live_login_exists() {
+    let sb = Sandbox::new();
+
+    sb.cmd()
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No Droid login was found"))
+        .stdout(predicate::str::contains("droid"))
+        .stdout(predicate::str::contains("dsw add main"));
+}
+
+#[test]
+fn empty_list_suggests_import_when_live_login_exists() {
+    let sb = Sandbox::new();
+    sb.write_live("alice@example.com");
+
+    sb.cmd()
+        .args(["list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No profiles yet"))
+        .stdout(predicate::str::contains("dsw import main"));
+}
+
+#[test]
+fn empty_list_suggests_login_when_no_live_login_exists() {
+    let sb = Sandbox::new();
+
+    sb.cmd()
+        .args(["list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No Droid login was found"))
+        .stdout(predicate::str::contains("dsw add main"));
+}
+
+#[test]
 fn switch_between_two_profiles_round_trips() {
     let sb = Sandbox::new();
 
@@ -171,7 +219,7 @@ fn remove_yes_clears_active() {
         .args(["list"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("no profiles yet"));
+        .stdout(predicate::str::contains("No profiles yet"));
 }
 
 #[test]

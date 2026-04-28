@@ -4,7 +4,7 @@ use serde::Serialize;
 use super::fmt_expiry;
 use crate::cli::ListArgs;
 use crate::factory::{identity_from_dir, Identity};
-use crate::paths::Paths;
+use crate::paths::{Paths, AUTH_FILES};
 use crate::profile;
 use crate::state::State;
 
@@ -39,12 +39,32 @@ pub fn run(paths: &Paths, args: ListArgs) -> Result<()> {
     }
 
     if rows.is_empty() {
-        println!("no profiles yet - try `dsw import <name>` or `dsw add <name>`");
+        print_empty_state(paths);
         return Ok(());
     }
 
     print_rows(&rows);
     Ok(())
+}
+
+fn print_empty_state(paths: &Paths) {
+    println!("No profiles yet.");
+    println!();
+    if has_live_login(paths) {
+        println!("A Droid login was found. Save it as your main profile:");
+        println!("  dsw import main");
+    } else {
+        println!("No Droid login was found. Log in first, then save it:");
+        println!("  droid");
+        println!("  dsw import main");
+        println!();
+        println!("Or let dsw launch Droid for a new profile:");
+        println!("  dsw add main");
+    }
+}
+
+fn has_live_login(paths: &Paths) -> bool {
+    AUTH_FILES.iter().any(|f| paths.factory.join(f).is_file())
 }
 
 fn print_rows(rows: &[Row]) {
