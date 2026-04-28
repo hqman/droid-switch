@@ -92,7 +92,8 @@ pub fn rename(paths: &Paths, old: &str, new: &str) -> Result<()> {
     Ok(())
 }
 
-/// All profile names sorted alphabetically.
+/// User-visible profile names sorted alphabetically. Internal profiles start
+/// with `_` and are intentionally hidden from user-facing commands.
 pub fn list(paths: &Paths) -> Result<Vec<String>> {
     let dir = paths.profiles_dir();
     if !dir.is_dir() {
@@ -103,7 +104,7 @@ pub fn list(paths: &Paths) -> Result<Vec<String>> {
         let entry = entry?;
         if entry.file_type()?.is_dir() {
             if let Some(n) = entry.file_name().to_str() {
-                if validate_profile_name(n).is_ok() {
+                if validate_profile_name(n).is_ok() && !is_internal_profile(n) {
                     names.push(n.to_string());
                 }
             }
@@ -111,6 +112,10 @@ pub fn list(paths: &Paths) -> Result<Vec<String>> {
     }
     names.sort();
     Ok(names)
+}
+
+fn is_internal_profile(name: &str) -> bool {
+    name.starts_with('_')
 }
 
 /// Copy a file with `0600` perms on the destination (best-effort on unix).
@@ -202,6 +207,16 @@ mod tests {
             snapshot_live(&paths, name).unwrap();
         }
         assert_eq!(list(&paths).unwrap(), vec!["client-1", "main", "work"]);
+    }
+
+    #[test]
+    fn list_hides_internal_profiles() {
+        let (_td, paths) = setup();
+        for name in ["main", "_pre_add"] {
+            write_synthetic_bundle(&paths.factory, &format!("{name}@x.com"), 1_900_000_000);
+            snapshot_live(&paths, name).unwrap();
+        }
+        assert_eq!(list(&paths).unwrap(), vec!["main"]);
     }
 
     #[test]

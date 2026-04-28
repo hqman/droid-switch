@@ -1,5 +1,4 @@
 use anyhow::Result;
-use comfy_table::{presets::ASCII_FULL, Table};
 use serde::Serialize;
 
 use super::fmt_expiry;
@@ -44,20 +43,51 @@ pub fn run(paths: &Paths, args: ListArgs) -> Result<()> {
         return Ok(());
     }
 
-    let mut table = Table::new();
-    table.load_preset(ASCII_FULL);
-    table.set_header(vec!["", "name", "email", "token"]);
-    for r in &rows {
-        let active_mark = if r.active { "*" } else { "" };
-        let email = r.email.clone().unwrap_or_else(|| "-".into());
-        let exp = r
-            .expires_at
-            .as_ref()
-            .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
-            .map(|d| fmt_expiry(d.with_timezone(&chrono::Utc)))
-            .unwrap_or_else(|| "-".into());
-        table.add_row(vec![active_mark.to_string(), r.name.clone(), email, exp]);
-    }
-    println!("{table}");
+    print_rows(&rows);
     Ok(())
+}
+
+fn print_rows(rows: &[Row]) {
+    let rendered: Vec<(&str, &str, String, String)> = rows
+        .iter()
+        .map(|r| {
+            let active = if r.active { "*" } else { " " };
+            let email = r.email.clone().unwrap_or_else(|| "-".into());
+            let token = r
+                .expires_at
+                .as_ref()
+                .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+                .map(|d| fmt_expiry(d.with_timezone(&chrono::Utc)))
+                .unwrap_or_else(|| "-".into());
+            (active, r.name.as_str(), email, token)
+        })
+        .collect();
+
+    let name_w = rendered
+        .iter()
+        .map(|(_, name, _, _)| name.len())
+        .max()
+        .unwrap_or(0)
+        .max("name".len());
+    let email_w = rendered
+        .iter()
+        .map(|(_, _, email, _)| email.len())
+        .max()
+        .unwrap_or(0)
+        .max("email".len());
+    let token_w = rendered
+        .iter()
+        .map(|(_, _, _, token)| token.len())
+        .max()
+        .unwrap_or(0)
+        .max("token".len());
+
+    println!(
+        "  {:name_w$}  {:email_w$}  {:token_w$}",
+        "name", "email", "token"
+    );
+    println!("  {:-<name_w$}  {:-<email_w$}  {:-<token_w$}", "", "", "");
+    for (active, name, email, token) in rendered {
+        println!("{active} {name:name_w$}  {email:email_w$}  {token:token_w$}");
+    }
 }
