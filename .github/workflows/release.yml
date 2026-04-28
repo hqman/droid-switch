@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build ${{ matrix.asset }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            asset: aarch64-apple-darwin
+            archive: tar.gz
+            test: true
+          - os: ubuntu-22.04
+            asset: x86_64-unknown-linux-gnu
+            archive: tar.gz
+            test: true
+          - os: windows-latest
+            asset: x86_64-pc-windows-msvc
+            archive: zip
+            test: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Test
+        if: matrix.test
+        run: cargo test --locked
+
+      - name: Build
+        run: cargo build --release --locked
+
+      - name: Package Unix
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="dsw-${{ matrix.asset }}"
+          mkdir -p "dist/$name"
+          cp target/release/dsw "dist/$name/"
+          cp README.md "dist/$name/"
+          cp LICENSE "dist/$name/"
+          tar -czf "dist/$name.tar.gz" -C dist "$name"
+
+      - name: Package Windows
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          $name = "dsw-${{ matrix.asset }}"
+          New-Item -ItemType Directory -Force -Path "dist/$name" | Out-Null
+          Copy-Item "target/release/dsw.exe" "dist/$name/"
+          Copy-Item "README.md" "dist/$name/"
+          Copy-Item "LICENSE" "dist/$name/"
+          Compress-Archive -Path "dist/$name/*" -DestinationPath "dist/$name.zip" -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsw-${{ matrix.asset }}
+          path: dist/*
+
+  release:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist/*
+          generate_release_notes: true
