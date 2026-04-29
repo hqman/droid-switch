@@ -91,6 +91,8 @@ Check your profiles:
 ```sh
 dsw list
 dsw status
+dsw sync
+dsw sync --all
 ```
 
 ## Commands
@@ -102,6 +104,7 @@ dsw add <name> [--no-login]     Launch Droid, wait for login, then save it
 dsw use <name>                  Activate a saved profile
 dsw list [--json]               List saved profiles
 dsw status [--json]             Show the active profile and live identity
+dsw sync [--all]                Save live auth back to saved profile(s)
 dsw remove <name> [-y]          Delete a profile
 dsw rename <old> <new>          Rename a profile
 dsw doctor [--json]             Check paths, permissions, Droid, and tokens
@@ -155,6 +158,15 @@ with `dsw use <name>`.
 
 Droid Switch creates a backup of the current live auth files under
 `~/.dsw/backups`.
+
+### How do I save refreshed Droid tokens?
+
+Droid can refresh the current live login in `~/.factory`. Run `dsw sync` after
+using Droid to save that refreshed auth bundle back to the active profile.
+
+Use `dsw sync --all` to save the current live auth bundle to every saved
+profile with the same decoded email or subject. This is intentionally safe: it
+does not switch accounts, start Droid, or refresh other accounts.
 
 ### Can I use a custom config directory?
 

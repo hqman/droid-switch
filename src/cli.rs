@@ -35,6 +35,9 @@ pub enum Command {
     #[command(alias = "current", alias = "whoami")]
     Status(StatusArgs),
 
+    /// Save the currently-live Droid auth back to the active profile
+    Sync(SyncArgs),
+
     /// Delete a saved profile
     #[command(alias = "rm")]
     Remove(RemoveArgs),
@@ -92,6 +95,13 @@ pub struct StatusArgs {
     /// Output as JSON
     #[arg(long)]
     pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct SyncArgs {
+    /// Sync live auth to every saved profile with the same email or subject
+    #[arg(long)]
+    pub all: bool,
 }
 
 #[derive(Args, Debug)]

@@ -23,6 +23,7 @@ fn main() -> ExitCode {
         Command::Use(a) => commands::use_::run(&paths, a),
         Command::List(a) => commands::list::run(&paths, a),
         Command::Status(a) => commands::status::run(&paths, a),
+        Command::Sync(a) => commands::sync::run(&paths, a),
         Command::Remove(a) => commands::remove::run(&paths, a),
         Command::Rename(a) => commands::rename::run(&paths, a),
         Command::Doctor(a) => commands::doctor::run(&paths, a),

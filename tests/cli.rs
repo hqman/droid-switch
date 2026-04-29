@@ -52,6 +52,10 @@ fn read_live(factory: &Path) -> Vec<u8> {
     fs::read(factory.join("auth.v2.file")).unwrap()
 }
 
+fn read_profile(home: &Path, name: &str) -> Vec<u8> {
+    fs::read(home.join("profiles").join(name).join("auth.v2.file")).unwrap()
+}
+
 #[test]
 fn import_then_status_then_list() {
     let sb = Sandbox::new();
@@ -288,6 +292,98 @@ fn use_same_profile_is_idempotent() {
         .assert()
         .success()
         .stdout(predicate::str::contains("already on 'main'"));
+}
+
+#[test]
+fn sync_updates_active_profile_from_live_auth() {
+    let sb = Sandbox::new();
+    sb.write_live("alice@example.com");
+    sb.cmd().args(["import", "main"]).assert().success();
+
+    sb.write_live("alice.fresh@example.com");
+    sb.cmd()
+        .args(["sync"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("alice.fresh@example.com"));
+
+    sb.cmd()
+        .args(["list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("alice.fresh@example.com"));
+}
+
+#[test]
+fn sync_requires_active_profile() {
+    let sb = Sandbox::new();
+    sb.write_live("alice@example.com");
+
+    sb.cmd()
+        .args(["sync"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("no active profile"));
+}
+
+#[test]
+fn sync_requires_live_auth_without_deleting_profile() {
+    let sb = Sandbox::new();
+    sb.write_live("alice@example.com");
+    sb.cmd().args(["import", "main"]).assert().success();
+    for f in ["auth.v2.file", "auth.v2.key", "auth.encrypted"] {
+        let _ = fs::remove_file(sb.factory.join(f));
+    }
+
+    sb.cmd()
+        .args(["sync"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("no auth files found"));
+
+    sb.cmd()
+        .args(["list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("alice@example.com"));
+}
+
+#[test]
+fn sync_all_updates_matching_profiles_only() {
+    let sb = Sandbox::new();
+
+    sb.write_live("alice@example.com");
+    sb.cmd().args(["import", "main"]).assert().success();
+    let old_main = read_profile(&sb.home, "main");
+
+    sb.write_live("bob@example.com");
+    sb.cmd().args(["import", "work"]).assert().success();
+    let old_work = read_profile(&sb.home, "work");
+
+    sb.write_live("alice@example.com");
+    let fresh_alice = read_live(&sb.factory);
+    assert_ne!(fresh_alice, old_main);
+
+    sb.cmd()
+        .args(["sync", "--all"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("1 matching profile(s): main"));
+
+    assert_eq!(read_profile(&sb.home, "main"), fresh_alice);
+    assert_eq!(read_profile(&sb.home, "work"), old_work);
+}
+
+#[test]
+fn sync_all_does_not_require_active_profile() {
+    let sb = Sandbox::new();
+    sb.write_live("alice@example.com");
+
+    sb.cmd()
+        .args(["sync", "--all"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("no matching profiles"));
 }
 
 #[test]

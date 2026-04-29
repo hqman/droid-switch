@@ -7,6 +7,7 @@ pub mod list;
 pub mod remove;
 pub mod rename;
 pub mod status;
+pub mod sync;
 pub mod use_;
 
 use std::fs;
