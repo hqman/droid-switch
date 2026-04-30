@@ -1,5 +1,9 @@
 # Droid Switch
 
+![Droid Switch header](assets/social/droid-switch-header.png)
+
+[简体中文](README_CN.md)
+
 ### A tiny account switcher for Factory Droid
 
 [![Version](https://img.shields.io/github/v/release/hqman/droid-switch?label=version)](https://github.com/hqman/droid-switch/releases)
